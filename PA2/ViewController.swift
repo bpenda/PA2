@@ -17,6 +17,7 @@ var motionManager: CMMotionManager!
 
 class ViewController: UIViewController, MFMailComposeViewControllerDelegate{
     let pi = M_PI
+    let me = self
     let accel_scale = 9.81
     let captureSession = AVCaptureSession()
     var captureDevice : AVCaptureDevice?
@@ -33,7 +34,11 @@ class ViewController: UIViewController, MFMailComposeViewControllerDelegate{
     @IBOutlet var xml:UILabel!
     @IBOutlet var yml:UILabel!
     @IBOutlet var zml:UILabel!
+    @IBOutlet var rattl:UILabel!
+    @IBOutlet var pattl:UILabel!
+    @IBOutlet var yattl:UILabel!
     @IBOutlet var stepl:UILabel!
+    @IBOutlet var anglel:UILabel!
     @IBOutlet var Button: UIButton!
     
     var startTime:NSDate = NSDate()
@@ -41,10 +46,15 @@ class ViewController: UIViewController, MFMailComposeViewControllerDelegate{
     var xa:Double = 0,ya:Double = 0,za:Double = 0
     var xr:Double = 0,yr:Double = 0,zr:Double = 0
     var xm:Double = 0,ym:Double = 0,zm:Double = 0
+    var ratt:Double = 0,patt:Double = 0,yatt:Double = 0
+    
+    var totalAngle:Double = 0
+    var lastAngle:Double = 0
     
     var pathX:String = "";
     var mess:String = "";
     var start:Bool = false;
+    var angleBuf = [Double]()
     
     let Xn = 0.0, Yn = 0.0, Zn = -9.81
     
@@ -56,14 +66,51 @@ class ViewController: UIViewController, MFMailComposeViewControllerDelegate{
         case above, below, zero
     }
     var Zstate:GraphState = GraphState.above
+    var Rstate:GraphState = GraphState.above
+
     
     override func viewDidLoad() {
         super.viewDidLoad()
         motionManager = CMMotionManager()
         motionManager.startAccelerometerUpdates()
+        motionManager.startDeviceMotionUpdatesUsingReferenceFrame(CMAttitudeReferenceFrame.XArbitraryZVertical)
         motionManager.startGyroUpdates()
         motionManager.startMagnetometerUpdates()
         
+      /*  if motionManager.deviceMotionAvailable {
+            motionManager.startDeviceMotionUpdatesToQueue(NSOperationQueue.mainQueue()) {
+                
+                // translate the attitude
+                data.attitude.multiplyByInverseOfAttitude(initialAttitude)
+                
+                // calculate magnitude of the change from our initial attitude
+                let magnitude = magnitudeFromAttitude(data.attitude) ?? 0
+                
+                // show the prompt
+                if !showingPrompt && magnitude > showPromptTrigger {
+                    if let promptViewController = self?.storyboard?.instantiateViewControllerWithIdentifier("PromptViewController") as? PromptViewController {
+                        showingPrompt = true
+                        
+                        promptViewController.modalTransitionStyle = UIModalTransitionStyle.CrossDissolve
+                        self!.presentViewController(promptViewController, animated: true, completion: nil)
+                    }
+                }
+                
+                // hide the prompt
+                if showingPrompt && magnitude < showAnswerTrigger {
+                    showingPrompt = false
+                    self?.dismissViewControllerAnimated(true, completion: nil)
+                }
+            
+        }*/
+            /*if motionManager.deviceMotionAvailable {
+                motionManager.deviceMotionUpdateInterval = 100
+                motionManager.startDeviceMotionUpdatesToQueue(NSOperationQueue(), ) {
+                    (data: CMDeviceMotion?, error: NSError?) in
+                    self.ratt = data!.attitude.yaw
+                }
+                
+        }*/
         _ = NSTimer.scheduledTimerWithTimeInterval(0.01, target: self, selector: Selector("getReadings"), userInfo: nil, repeats: true)
         _ = NSTimer.scheduledTimerWithTimeInterval(0.01, target: self, selector: Selector("writeReadings"), userInfo: nil, repeats: true)
         
@@ -78,6 +125,12 @@ class ViewController: UIViewController, MFMailComposeViewControllerDelegate{
         super.didReceiveMemoryWarning()
     }
     
+    func updateRotation(){
+        print("updateing as ;ldfja")
+    }
+    
+
+    
     func countSteps(){
             if ((Zstate == .above) && (za < (Zn - stepTol))){
                 Zstate = .below
@@ -85,7 +138,25 @@ class ViewController: UIViewController, MFMailComposeViewControllerDelegate{
             if ((Zstate == .below) && (za > (Zn + stepTol))){
                 Zstate = .above
                 steps++
+                
             }
+        
+    }
+    
+    func countRotation(){
+        if(Rstate == .above && abs(zr) > 50){
+            Rstate = .below
+            lastAngle = abs(yatt)
+        }
+        if(Rstate == .below && abs(zr) < 5){
+            //totalAngle += (Double(Int(abs(angleBuf[0] - abs(yatt)))/5)+1)*5
+            var dif = abs(lastAngle - abs(yatt))
+            if(dif > 180){
+                dif = 360 - dif
+            }
+            totalAngle += dif
+            Rstate = .above
+        }
     }
     
     func getReadings(){
@@ -110,6 +181,17 @@ class ViewController: UIViewController, MFMailComposeViewControllerDelegate{
                 self.zm = magData.magneticField.z
                 
             }
+            
+            if let attData = motionManager.deviceMotion?.attitude {
+                self.ratt = attData.roll
+                self.patt = attData.pitch
+                self.yatt = attData.yaw*180/self.pi
+                if(self.yatt < 0){
+                    self.yatt = 360 + self.yatt
+                }
+                
+                self.countRotation()
+            }
             dispatch_async(dispatch_get_main_queue()) {
                 //update accelerometer labels
                 self.xal.text = String(format: "%.2f", self.xa)
@@ -123,6 +205,13 @@ class ViewController: UIViewController, MFMailComposeViewControllerDelegate{
                 self.xml.text = String(format: "%.2f", self.xm)
                 self.yml.text = String(format: "%.2f", self.ym)
                 self.zml.text = String(format: "%.2f", self.zm)
+                
+                self.rattl.text = String(format: "%.2f", self.ratt)
+                self.pattl.text = String(format: "%.2f", self.patt)
+                self.yattl.text = String(format: "%.2f", self.yatt)
+                
+                self.anglel.text = String(format: "%.2f", self.totalAngle)
+
                 //update time label and step-count label
                 self.time.text = String(self.elapsedTime)
                 self.stepl.text = String(self.steps)
