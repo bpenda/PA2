@@ -122,8 +122,6 @@ class ViewController: UIViewController, MFMailComposeViewControllerDelegate{
         _ = NSTimer.scheduledTimerWithTimeInterval(0.01, target: self, selector: Selector("writeReadings"), userInfo: nil, repeats: true)
         
         
-        
-        _ = NSTimer.scheduledTimerWithTimeInterval(0.01, target: self, selector: Selector("sendReadings"), userInfo: nil, repeats: true)
         /*        _ = NSTimer.scheduledTimerWithTimeInterval(5.0, target: self, selector: Selector("readFromFile"), userInfo: nil, repeats: true)
         */
         
