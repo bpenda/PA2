@@ -193,7 +193,7 @@
 				TargetAttributes = {
 					A9A139FA1C8D1AA900363A9B = {
 						CreatedOnToolsVersion = 7.3;
-						DevelopmentTeam = 6T66YGC736;
+						DevelopmentTeam = D6UAGPZQYN;
 					};
 					A9A13A0E1C8D1AA900363A9B = {
 						CreatedOnToolsVersion = 7.3;
@@ -400,10 +400,14 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				INFOPLIST_FILE = PA2/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.2;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				PRODUCT_BUNDLE_IDENTIFIER = com.vbhi.PA2;
+				PRODUCT_BUNDLE_IDENTIFIER = com.runomaticinc.runomatic;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE = "";
 			};
 			name = Debug;
 		};
@@ -411,10 +415,14 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				INFOPLIST_FILE = PA2/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.2;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				PRODUCT_BUNDLE_IDENTIFIER = com.vbhi.PA2;
+				PRODUCT_BUNDLE_IDENTIFIER = com.runomaticinc.runomatic;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE = "";
 			};
 			name = Release;
 		};
@@ -483,6 +491,7 @@
 				A9A13A251C8D1AA900363A9B /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		A9A13A261C8D1AA900363A9B /* Build configuration list for PBXNativeTarget "PA2Tests" */ = {
 			isa = XCConfigurationList;
@@ -491,6 +500,7 @@
 				A9A13A281C8D1AA900363A9B /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		A9A13A291C8D1AA900363A9B /* Build configuration list for PBXNativeTarget "PA2UITests" */ = {
 			isa = XCConfigurationList;
@@ -499,6 +509,7 @@
 				A9A13A2B1C8D1AA900363A9B /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};

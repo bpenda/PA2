@@ -18,15 +18,11 @@ var motionManager: CMMotionManager!
 class ViewController: UIViewController, MFMailComposeViewControllerDelegate{
     let pi = M_PI
     let accel_scale = 9.81
-    
-    let altimeter = CMAltimeter()
-    
-    
     let captureSession = AVCaptureSession()
     var captureDevice : AVCaptureDevice?
     var stillImageOutput : AVCaptureStillImageOutput? = AVCaptureStillImageOutput()
     
-    
+    //All the labels
     @IBOutlet var time:UILabel!
     @IBOutlet var xal:UILabel!
     @IBOutlet var yal:UILabel!
@@ -37,11 +33,7 @@ class ViewController: UIViewController, MFMailComposeViewControllerDelegate{
     @IBOutlet var xml:UILabel!
     @IBOutlet var yml:UILabel!
     @IBOutlet var zml:UILabel!
-    @IBOutlet var stl:UILabel!
-    @IBOutlet var luml:UILabel!
     @IBOutlet var stepl:UILabel!
-    @IBOutlet var activity:UILabel!
-    @IBOutlet var altl:UILabel!
     @IBOutlet var Button: UIButton!
     
     var startTime:NSDate = NSDate()
@@ -49,275 +41,44 @@ class ViewController: UIViewController, MFMailComposeViewControllerDelegate{
     var xa:Double = 0,ya:Double = 0,za:Double = 0
     var xr:Double = 0,yr:Double = 0,zr:Double = 0
     var xm:Double = 0,ym:Double = 0,zm:Double = 0
-    var lum:Double = 0
-    var alt:Double = 0
     
     var pathX:String = "";
     var mess:String = "";
     var start:Bool = false;
-    enum State {
-        case idle, walking, running, jumping, stairs
-    }
-    var state:State = State.idle
+    
     let Xn = 0.0, Yn = 0.0, Zn = -9.81
+    
     var steps = 0
-    var relativeAltitude = 0.0
-    var lastAltitude = 0.0
-    let idleTol = 1.0
-    let walkTol = 1.0
-    let runTol = 6.0
-    let jumpTol = 9.0
-    let stairTol = 2.0
-    
-    var stairs = false
-    var stairConst = 2.0
-    
-    let timeout = -1.2
-    let timeout2 = -1.5
-    
     let stepTol = 1.3
-    let stepRunTol = 4.0
+    let walkDist = 20.0
+    
     enum GraphState {
         case above, below, zero
     }
     var Zstate:GraphState = GraphState.above
-    var ZCrossings = [NSDate]()
-    var lastStep = NSDate()
-    
-    var paths = [String]()
-    var names = [String]()
-    var times = [NSDate]()
-    var dists = [Double]()
-    var fileNum = 0
-    
-    let runDist = 40.0
-    let walkDist = 20.0
-    
-    
-    
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        // 1
-        if CMAltimeter.isRelativeAltitudeAvailable() {
-            // 2
-            altimeter.startRelativeAltitudeUpdatesToQueue(NSOperationQueue.mainQueue(), withHandler: { data, error in
-                // 3
-                
-                print("Relative Altitude: \(data!.relativeAltitude)")
-                print("Pressure: \(data!.pressure)")
-                self.relativeAltitude = Double(data!.relativeAltitude)
-            })
-        }
-        
-        
         motionManager = CMMotionManager()
         motionManager.startAccelerometerUpdates()
         motionManager.startGyroUpdates()
         motionManager.startMagnetometerUpdates()
         
-        
         _ = NSTimer.scheduledTimerWithTimeInterval(0.01, target: self, selector: Selector("getReadings"), userInfo: nil, repeats: true)
         _ = NSTimer.scheduledTimerWithTimeInterval(0.01, target: self, selector: Selector("writeReadings"), userInfo: nil, repeats: true)
-        
-        
-        /*        _ = NSTimer.scheduledTimerWithTimeInterval(5.0, target: self, selector: Selector("readFromFile"), userInfo: nil, repeats: true)
-        */
-        
-        
         
         startTime = NSDate()
         time.text = "hi ben"
         self.xal.text = "x"
         self.yal.text = "y"
         self.zal.text = "z"
-        
     }
     
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
-        // Dispose of any resources that can be recreated.
-    }
-    
-    
-    func decider(){
-        switch state {
-        case .idle:
-            if (za > Zn + walkTol){
-                state = .walking
-                lastAltitude = relativeAltitude
-                steps = 0
-                lastStep = NSDate()
-                paths.append(pathX)
-                names.append("IDLE")
-                fileNum++
-                times.append(NSDate())
-                dists.append(0)
-            }
-            break
-        case .walking:
-            if (za < Zn + idleTol){
-                if (lastStep.timeIntervalSinceNow < timeout){
-                    state = .idle
-                    paths.append(pathX)
-                    if(abs(lastAltitude - relativeAltitude) > stairConst){
-                        names.append("STAIRS")
-                    }else{
-                        names.append("WALKING")
-                    }
-                    fileNum++
-                    times.append(NSDate())
-                    dists.append(Double(steps)*walkDist)
-                }
-            }else if(za > Zn + runTol){
-                state = .running
-                paths.append(pathX)
-                if(abs(lastAltitude - relativeAltitude) > stairConst){
-                    names.append("STAIRS")
-                }else{
-                    names.append("WALKING")
-                }
-                fileNum++
-                times.append(NSDate())
-                dists.append(Double(steps)*walkDist)
-                steps = 1
-            }else if(ya > Yn + stairTol){
-                state = .stairs
-                paths.append(pathX)
-                if(abs(lastAltitude - relativeAltitude) > stairConst){
-                    names.append("STAIRS")
-                }else{
-                    names.append("WALKING")
-                }
-                fileNum++
-                times.append(NSDate())
-                dists.append(Double(steps)*walkDist)
-                steps = 1
-            }else{
-                lastStep = NSDate()
-            }
-            break
-        case .running:
-            if (za < Zn + idleTol){
-                if (lastStep.timeIntervalSinceNow < timeout){
-                    state = .idle
-                    paths.append(pathX)
-                    names.append("RUNNING")
-                    fileNum++
-                    times.append(NSDate())
-                    dists.append(Double(steps)*runDist)
-                }
-            }else if(za < Zn + runTol){
-                if (lastStep.timeIntervalSinceNow < timeout){
-                    state = .walking
-                    lastAltitude = relativeAltitude
-                    paths.append(pathX)
-                    names.append("RUNNING")
-                    fileNum++
-                    times.append(NSDate())
-                    dists.append(Double(steps)*runDist)
-                    steps = 0
-                }
-            }else if(za > Zn + jumpTol){
-                state = .jumping
-                paths.append(pathX)
-                names.append("RUNNING")
-                fileNum++
-                times.append(NSDate())
-                dists.append(Double(steps)*runDist)
-            }else{
-                lastStep = NSDate()
-            }
-            break
-        case .jumping:
-            if (za < Zn + idleTol){
-                if (lastStep.timeIntervalSinceNow < timeout2){
-                    state = .idle
-                    paths.append(pathX)
-                    names.append("JUMPING")
-                    fileNum++
-                    times.append(NSDate())
-                    dists.append(0)
-                }
-            }else if(za < Zn + jumpTol){
-                if (lastStep.timeIntervalSinceNow < timeout2){
-                    state = .running
-                    steps = 1
-                    paths.append(pathX)
-                    names.append("JUMPING")
-                    fileNum++
-                    times.append(NSDate())
-                    dists.append(0)
-                }
-            }else if(za < Zn + runTol){
-                if (lastStep.timeIntervalSinceNow < timeout2){
-                    state = .walking
-                    lastAltitude = relativeAltitude
-                    steps = 0
-                    paths.append(pathX)
-                    names.append("JUMPING")
-                    fileNum++
-                    times.append(NSDate())
-                    dists.append(0)
-                }
-            }else{
-                lastStep = NSDate()
-            }
-            break
-        case .stairs:
-            steps = 0
-            if (za < Zn + idleTol){
-                if (lastStep.timeIntervalSinceNow < timeout){
-                    state = .idle
-                    paths.append(pathX)
-                    names.append("STAIRS")
-                    fileNum++
-                    times.append(NSDate())
-                    dists.append(Double(steps)*walkDist)
-                }
-            }else if(za > Zn + jumpTol){
-                state = .jumping
-                paths.append(pathX)
-                names.append("STAIRS")
-                fileNum++
-                times.append(NSDate())
-                dists.append(Double(steps)*walkDist)
-            }else if(za > Zn + runTol){
-                state = .running
-                paths.append(pathX)
-                names.append("STAIRS")
-                fileNum++
-                times.append(NSDate())
-                dists.append(Double(steps)*walkDist)
-                steps = 1
-            }else if(ya < Yn + stairTol){
-                state = .walking
-                lastAltitude = relativeAltitude
-                paths.append(pathX)
-                names.append("STAIRS")
-                fileNum++
-                times.append(NSDate())
-                dists.append(Double(steps)*walkDist)
-                steps = 1
-            }else{
-                lastStep = NSDate()
-            }
-            break
-        default: break
-        }
     }
     
     func countSteps(){
-        if (state == .running){
-            if ((Zstate == .above) && (za < (Zn - stepRunTol))){
-                Zstate = .below
-            }
-            if ((Zstate == .below) && (za > (Zn + stepRunTol))){
-                Zstate = .above
-                steps++
-            }
-        }else{
             if ((Zstate == .above) && (za < (Zn - stepTol))){
                 Zstate = .below
             }
@@ -325,8 +86,6 @@ class ViewController: UIViewController, MFMailComposeViewControllerDelegate{
                 Zstate = .above
                 steps++
             }
-        }
-        
     }
     
     func getReadings(){
@@ -338,7 +97,6 @@ class ViewController: UIViewController, MFMailComposeViewControllerDelegate{
                 self.za = accelerometerData.acceleration.z * self.accel_scale
                 self.elapsedTime = NSDate().timeIntervalSinceDate(self.startTime)
                 self.countSteps()
-                self.decider()
             }
             if let gyroData = motionManager.gyroData {
                 self.xr = gyroData.rotationRate.x*180/self.pi
@@ -365,32 +123,18 @@ class ViewController: UIViewController, MFMailComposeViewControllerDelegate{
                 self.xml.text = String(format: "%.2f", self.xm)
                 self.yml.text = String(format: "%.2f", self.ym)
                 self.zml.text = String(format: "%.2f", self.zm)
-                
+                //update time label and step-count label
                 self.time.text = String(self.elapsedTime)
-                
-                self.luml.text = String(self.lum)
-                
                 self.stepl.text = String(self.steps)
-                self.activity.text = String(self.state)
-                self.altl.text = String(self.relativeAltitude)
-                
             }
         }
-        
     }
     
     func writeReadings(){
         if (start){
             print("writing file")
-            //self.writeToFile("./readings.csv")
-            self.writeToFile(String(fileNum)+".csv")
+            self.writeToFile("readings.csv")
         }
-    }
-    
-    func fileNamer(index: Int) -> String{
-        let formatter = NSDateFormatter()
-        formatter.dateFormat = "dd-MM-yy HH:mm:ss"
-        return String(format:"%@_%@_%@cm.csv",names[index],formatter.stringFromDate(times[index]),String(dists[index]))
     }
     
     func writeToFile(file: String){
@@ -414,10 +158,7 @@ class ViewController: UIViewController, MFMailComposeViewControllerDelegate{
         let file = "data.asc"
         if let dir : NSString = NSSearchPathForDirectoriesInDomains(NSSearchPathDirectory.DocumentDirectory, NSSearchPathDomainMask.AllDomainsMask, true).first {
             let path = dir.stringByAppendingPathComponent(file);
-            
-            do {
-                let read = try NSString(contentsOfFile: path, encoding: NSUTF8StringEncoding)
-            }
+            do {let read = try NSString(contentsOfFile: path, encoding: NSUTF8StringEncoding)}
             catch {print("Read from file failed")}
         }
     }
@@ -427,11 +168,6 @@ class ViewController: UIViewController, MFMailComposeViewControllerDelegate{
         if (!start){
             start = true
             startTime = NSDate()
-            paths = [String]()
-            names = [String]()
-            times = [NSDate]()
-            dists = [Double]()
-            times.append(NSDate())
         }else{
             start = false
             if( MFMailComposeViewController.canSendMail() ) {
@@ -441,13 +177,11 @@ class ViewController: UIViewController, MFMailComposeViewControllerDelegate{
                 mailComposer.setSubject("Booty")
                 mailComposer.setMessageBody("YAY", isHTML: false)
                 let fileManager = NSFileManager.defaultManager()
-                for var index = 0; index < paths.count; ++index {
-                    
-                    if let fileData = NSData(contentsOfFile: paths[index]) {
+                    if let fileData = NSData(contentsOfFile: pathX) {
                         print("File data loaded.")
-                        mailComposer.addAttachmentData(fileData, mimeType: "text/csv", fileName: fileNamer(index))
+                        mailComposer.addAttachmentData(fileData, mimeType: "text/csv", fileName: "readings.csv")
                         do {
-                            try fileManager.removeItemAtPath(paths[index])
+                            try fileManager.removeItemAtPath(pathX)
                             print("Deleted")
                         }
                         catch let error as NSError {
@@ -456,13 +190,11 @@ class ViewController: UIViewController, MFMailComposeViewControllerDelegate{
                     }else{
                         print("File data is NOT loaded.")
                     }
-                }
-                
-                
                 self.presentViewController(mailComposer, animated: true, completion: nil)
             }
         }
     }
+    
     func mailComposeController(controller: MFMailComposeViewController!, didFinishWithResult result: MFMailComposeResult, error: NSError!) {
         self.dismissViewControllerAnimated(true, completion: nil)
     }
