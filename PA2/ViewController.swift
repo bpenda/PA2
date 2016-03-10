@@ -8,6 +8,7 @@
 import Foundation
 import UIKit
 import CoreMotion
+import CoreLocation
 import AVFoundation
 
 
@@ -22,7 +23,7 @@ class ViewController: UIViewController, MFMailComposeViewControllerDelegate{
     let captureSession = AVCaptureSession()
     var captureDevice : AVCaptureDevice?
     var stillImageOutput : AVCaptureStillImageOutput? = AVCaptureStillImageOutput()
-    
+    var lm:CLLocationManager!
     //All the labels
     @IBOutlet var time:UILabel!
     @IBOutlet var xal:UILabel!
@@ -39,6 +40,7 @@ class ViewController: UIViewController, MFMailComposeViewControllerDelegate{
     @IBOutlet var yattl:UILabel!
     @IBOutlet var stepl:UILabel!
     @IBOutlet var anglel:UILabel!
+    @IBOutlet var distl:UILabel!
     @IBOutlet var Button: UIButton!
     
     var startTime:NSDate = NSDate()
@@ -47,6 +49,7 @@ class ViewController: UIViewController, MFMailComposeViewControllerDelegate{
     var xr:Double = 0,yr:Double = 0,zr:Double = 0
     var xm:Double = 0,ym:Double = 0,zm:Double = 0
     var ratt:Double = 0,patt:Double = 0,yatt:Double = 0
+    var compassHeading:Double = 0;
     
     var totalAngle:Double = 0
     var lastAngle:Double = 0
@@ -71,6 +74,9 @@ class ViewController: UIViewController, MFMailComposeViewControllerDelegate{
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        lm = CLLocationManager()
+        
+        lm.startUpdatingHeading()
         motionManager = CMMotionManager()
         motionManager.startAccelerometerUpdates()
         motionManager.startDeviceMotionUpdatesUsingReferenceFrame(CMAttitudeReferenceFrame.XArbitraryZVertical)
@@ -181,6 +187,15 @@ class ViewController: UIViewController, MFMailComposeViewControllerDelegate{
                 self.zm = magData.magneticField.z
                 
             }
+            if let heading = self.lm.heading?.magneticHeading{
+                self.compassHeading = Double(heading)
+                print(self.compassHeading)
+            }
+            if let heading = self.lm.heading?.magneticHeading{
+                self.compassHeading = Double(heading)
+            }
+
+            
             
             if let attData = motionManager.deviceMotion?.attitude {
                 self.ratt = attData.roll
@@ -215,6 +230,7 @@ class ViewController: UIViewController, MFMailComposeViewControllerDelegate{
                 //update time label and step-count label
                 self.time.text = String(self.elapsedTime)
                 self.stepl.text = String(self.steps)
+                self.distl.text = String(format: "%d inches", self.steps*18)
             }
         }
     }
@@ -227,7 +243,7 @@ class ViewController: UIViewController, MFMailComposeViewControllerDelegate{
     }
     
     func writeToFile(file: String){
-        mess =  self.time.text! + ", " + self.xal.text! + ", " + self.yal.text! + ", " + self.zal.text! + ", " + self.xrl.text! + ", " + self.yrl.text! + ", " + self.zrl.text! + ", " + self.xml.text! + ", " + self.yml.text! + ", " + self.zml.text! + ", " + "\n"
+        mess =  self.time.text! + ", " + self.xal.text! + ", " + self.yal.text! + ", " + self.zal.text! + ", " + self.xrl.text! + ", " + self.yrl.text! + ", " + self.zrl.text! + ", " + self.xml.text! + ", " + self.yml.text! + ", " + self.zml.text! + ", " + String(self.compassHeading) + ", " + self.yattl.text! + ", " + self.anglel.text! + "\n"
         if let dir : NSString = NSSearchPathForDirectoriesInDomains(NSSearchPathDirectory.DocumentDirectory, NSSearchPathDomainMask.AllDomainsMask, true).first {
             let path = dir.stringByAppendingPathComponent(file);
             pathX = path;
